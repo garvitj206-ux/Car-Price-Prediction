@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>AutoValuate AI | End-to-End Car Price Predictor</title>
+    <!-- Custom Modern Glassmorphism Design System -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+
+    <div class="main-wrapper">
+        <div class="glass-card">
+            
+            <!-- Header Section -->
+            <div class="app-header">
+                <div class="badge-tag">
+                    <span class="badge-dot"></span>
+                </div>
+                <h1 class="app-title">Car Price Prediction</h1>
+                <p class="app-subtitle">Predict resale vehicle market values instantly.</p>
+            </div>
+
+            <!-- Main Form Section -->
+            <div class="app-body">
+                <form method="POST" accept-charset="utf-8" onsubmit="return false;">
+                    
+                    <div class="form-grid">
+                        
+                        <!-- Company Selection -->
+                        <div class="form-group">
+                            <label class="field-label" for="company">Vehicle Brand</label>
+                            <div class="custom-input-wrapper">
+                                <select class="custom-select" id="company" name="company" required onchange="load_car_models('company', 'car_models')">
+                                    <option value="" disabled selected>Select Brand / Company</option>
+                                    {% for company in companies %}
+                                        <option value="{{ company }}">{{ company }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Car Model Selection -->
+                        <div class="form-group">
+                            <label class="field-label" for="car_models">Vehicle Model</label>
+                            <div class="custom-input-wrapper">
+                                <select class="custom-select" id="car_models" name="car_models" required>
+                                    <option value="" disabled selected>Select Model (Choose Brand First)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Year Selection -->
+                        <div class="form-group">
+                            <label class="field-label" for="year">Manufacturing Year</label>
+                            <div class="custom-input-wrapper">
+                                <select class="custom-select" id="year" name="year" required>
+                                    <option value="" disabled selected>Select Purchase Year</option>
+                                    {% for year in year %}
+                                        <option value="{{ year }}">{{ year }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Fuel Type Selection -->
+                        <div class="form-group">
+                            <label class="field-label" for="Fuel_type">Fuel Type</label>
+                            <div class="custom-input-wrapper">
+                                <select class="custom-select" id="Fuel_type" name="fuel_type" required>
+                                    <option value="" disabled selected>Select Fuel Engine Type</option>
+                                    {% for fuel in fuel_type %}
+                                        <option value="{{ fuel }}">{{ fuel }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Kilometers Driven Input -->
+                        <div class="form-group form-group-full">
+                            <label class="field-label" for="kilo-driven">Total Distance Driven (in KM)</label>
+                            <div class="custom-input-wrapper">
+                                <input class="custom-input" type="number" id="kilo-driven" name="kms_driven" placeholder="e.g. 45000" min="0" required>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="form-group form-group-full">
+                            <button type="button" class="btn-predict" onclick="send_data()">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                                </svg>
+                                Calculate Estimated Price
+                            </button>
+                        </div>
+
+                    </div>
+                </form>
+
+                <!-- Dynamic Output Card -->
+                <div class="result-card" id="result-card">
+                    <div id="prediction"></div>
+                </div>
+
+            </div>
+
+            <!-- Footer Section -->
+            <div class="app-footer">
+
+
+            </div>
+
+        </div>
+    </div>
+
+<script>
+
+    function load_car_models(company_id, car_models_id) {
+        var company = document.getElementById(company_id);
+        var car_models = document.getElementById(car_models_id);
+
+        car_models.value = "";
+        car_models.innerHTML = "<option value='' disabled selected>Select Model</option>";
+
+        {% for company in companies %}
+            if (company.value == "{{ company }}") {
+                {% for model in car_models %}
+                    {% if company in model %}
+                        var newOption = document.createElement("option");
+                        newOption.value = "{{ model }}";
+                        newOption.innerHTML = "{{ model }}";
+                        car_models.options.add(newOption);
+                    {% endif %}
+                {% endfor %}
+            }
+        {% endfor %}
+    }
+
+    function form_handler(event) {
+        event.preventDefault();
+    }
+
+    function send_data() {
+        var company = document.getElementById("company").value;
+        var car_model = document.getElementById("car_models").value;
+        var year = document.getElementById("year").value;
+        var fuel_type = document.getElementById("Fuel_type").value;
+        var kms_driven = document.getElementById("kilo-driven").value;
+
+        if (!company || !car_model || !year || !fuel_type || !kms_driven) {
+            var resultCard = document.getElementById("result-card");
+            var predictionBox = document.getElementById("prediction");
+            resultCard.className = "result-card active";
+            predictionBox.innerHTML = '<div class="result-title">Form Incomplete</div><div class="result-price" style="font-size: 1.2rem; color: #f87171;">Please fill in all fields before predicting!</div>';
+            return;
+        }
+
+        var fd = new FormData(document.querySelector('form'));
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/predict', true);
+
+        var resultCard = document.getElementById("result-card");
+        var predictionBox = document.getElementById("prediction");
+
+        resultCard.className = "result-card active";
+        predictionBox.innerHTML = '<div class="result-loading"><div class="spinner"></div>Evaluating market algorithm...</div>';
+
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState == XMLHttpRequest.DONE) {
+                var responseText = xhr.responseText.trim();
+                var rawPrice = parseFloat(responseText);
+                if (!isNaN(rawPrice)) {
+                    var formattedPrice = Math.round(rawPrice).toLocaleString('en-IN');
+                    predictionBox.innerHTML = '<div class="result-title">Estimated Market Value</div><div class="result-price">₹ ' + formattedPrice + '</div>';
+                } else {
+                    predictionBox.innerHTML = '<div class="result-title">Prediction Result</div><div class="result-price" style="font-size: 1.5rem; color: #cbd5e1;">' + responseText + '</div>';
+                }
+            }
+        };
+
+        xhr.send(fd);
+    }
+
+</script>
+</body>
+</html>
